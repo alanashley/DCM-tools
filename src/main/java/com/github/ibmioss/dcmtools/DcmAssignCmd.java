@@ -24,7 +24,10 @@ public class DcmAssignCmd {
         }
 
         Set<String> getApps() throws IOException {
-            if (m_apps.isEmpty() && !isYesMode()) {
+            if (!m_apps.isEmpty()) {
+                return m_apps;
+            }
+            if (!isYesMode()) {
                 final String resp = ConsoleQuestionAsker.get().askUserOrThrow("Enter application ID: ");
                 m_apps.add(resp);
                 return m_apps;
@@ -49,10 +52,10 @@ public class DcmAssignCmd {
         }
 
         String getCertId() throws IOException {
-            if (null != m_certId) {
+            if (StringUtils.isNonEmpty(m_certId)) {
                 return m_certId;
             }
-            if (StringUtils.isEmpty(m_certId) && !isYesMode()) {
+            if (!isYesMode()) {
                 final String resp = ConsoleQuestionAsker.get().askUserOrThrow("Enter certificate ID: ");
                 return m_certId = resp;
             }
