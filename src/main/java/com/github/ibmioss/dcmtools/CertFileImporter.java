@@ -92,7 +92,16 @@ public class CertFileImporter {
 
         final boolean isYesMode = _opts.isYesMode();
         // Initialize keystore from file of unknown type
-        final KeyStore keyStore = new KeyStoreLoader(_logger, m_fileNames, _opts.getPasswordOrNull(), _opts.getLabel(), _opts.isCasOnly()).getKeyStore();
+        final KeyStoreLoader.PasswordPrompter prompter = new KeyStoreLoader.PasswordPrompter() {
+            @Override
+            public String getPasswordFor(final String _fileName) throws IOException {
+                if (isYesMode) {
+                    return null;
+                }
+                return ConsoleQuestionAsker.get().askUserForPwd("Enter password for input file " + _fileName + ": ");
+            }
+        };
+        final KeyStore keyStore = new KeyStoreLoader(_logger, m_fileNames, _opts.getPasswordOrNull(), _opts.getLabel(), _opts.isCasOnly(), prompter).getKeyStore();
         _logger.println_success("Sanity check successful");
 
         final KeyStoreInterrogator dcmChecker = _tracker.getStartingSnapshot();
@@ -103,7 +112,11 @@ public class CertFileImporter {
             final Certificate cert = keyStore.getCertificate(alias);
             final String conflictingAlias = dcmChecker.getAliasOfCertOrNull(_logger, cert);
             if (null != conflictingAlias) {
-                _logger.println_warn("WARNING: The following certificate already exists in the keystore with certificate id '" + conflictingAlias + "'. Certificate will not be imported:\n" + CertUtils.getCertInfoStr(cert, "    "));
+                String warning = "WARNING: The following certificate already exists in the keystore with certificate id '" + conflictingAlias + "'. Certificate will not be imported:\n" + CertUtils.getCertInfoStr(cert, "    ");
+                if (keyStore.isKeyEntry(alias)) {
+                    warning += "\n    If it was previously imported without its private key, remove it first with:\n        dcmremovecert --label='" + conflictingAlias + "'";
+                }
+                _logger.println_warn(warning);
                 keyStore.deleteEntry(alias);
             }
         }
@@ -123,7 +136,7 @@ public class CertFileImporter {
         _logger.println("The following certificates will be processed:");
         for (final String alias : Collections.list(keyStore.aliases())) {
             final Certificate cert = keyStore.getCertificate(alias);
-            _logger.println("    Certificate ID '" + alias + "':");
+            _logger.println("    Certificate ID '" + alias + "'" + (keyStore.isKeyEntry(alias) ? " (server/client certificate, with private key):" : ":"));
             _logger.println(StringUtils.colorizeForTerminal(CertUtils.getCertInfoStr(cert, "        "), TerminalColor.CYAN));
         }
         final String reply = isYesMode ? "y" : ConsoleQuestionAsker.get().askUserWithDefault("Do you want to import ALL of the above certificates into DCM? [y/N] ", "N");
