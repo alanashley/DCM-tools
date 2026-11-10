@@ -1,0 +1,40 @@
+# Builds the tools and publishes a GitHub release when a version tag is pushed.
+# Tags containing a hyphen (for instance v0.3.1-rc.1) are published as pre-releases.
+
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 8
+      uses: actions/setup-java@v4
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: 'maven'
+    - name: Build and test
+      run: mvn -B package --file pom.xml
+    - name: Collect release files
+      run: |
+        mkdir -p dist
+        cp target/*-with-dependencies.jar dist/dcmtools.jar
+        tar -czf dist/dcmtools-scripts.tar.gz scripts
+    - name: Publish release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        flags=""
+        case "$TAG" in *-*) flags="--prerelease" ;; esac
+        gh release create "$TAG" $flags --verify-tag --generate-notes --title "$TAG" \
+          dist/dcmtools.jar dist/dcmtools-scripts.tar.gz
