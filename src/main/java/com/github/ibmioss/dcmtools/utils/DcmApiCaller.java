@@ -3,6 +3,7 @@ package com.github.ibmioss.dcmtools.utils;
 import java.beans.PropertyVetoException;
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
@@ -62,6 +63,7 @@ public class DcmApiCaller implements Closeable {
         final ErrorCodeParameter ec = new ErrorCodeParameter(true, true);
         parameterList[5] = ec;
 
+        passAllByReference(parameterList);
         program.setProgram(programName, parameterList);
         program.setProcedureName("QycdAddCACertTrust");
         // Run the program.
@@ -89,6 +91,7 @@ public class DcmApiCaller implements Closeable {
         final ErrorCodeParameter ec = new ErrorCodeParameter(true, true);
         parameterList[6] = ec;
 
+        passAllByReference(parameterList);
         program.setProgram(programName, parameterList);
         program.setProcedureName("QycdRemoveCertUsage");
         // Run the program.
@@ -122,6 +125,7 @@ public class DcmApiCaller implements Closeable {
         final ErrorCodeParameter ec = new ErrorCodeParameter(true, true);
         parameterList[3] = ec;
 
+        passAllByReference(parameterList);
         program.setProgram(programName, parameterList);
         program.setProcedureName("QycdRenewCertificate");
 
@@ -140,7 +144,6 @@ public class DcmApiCaller implements Closeable {
         final ProgramParameter[] parameterList = new ProgramParameter[8];
         // 1 Application ID Output Char(*)
         parameterList[0] = new ProgramParameter(new AS400Text(_appId.length()).toBytes(_appId));
-        parameterList[0].setParameterType(ProgramParameter.PASS_BY_REFERENCE);
         // 2 Length of application ID Input Binary(4)
         parameterList[1] = new ProgramParameter(new AS400Bin4().toBytes(_appId.length()));
         // 3 Certificate store name Input Char(*)
@@ -157,6 +160,7 @@ public class DcmApiCaller implements Closeable {
         final ErrorCodeParameter ec = new ErrorCodeParameter(true, true);
         parameterList[7] = ec;
 
+        passAllByReference(parameterList);
         program.setProgram(programName, parameterList);
         program.setProcedureName("QycdUpdateCertUsage");
         // Run the program.
@@ -175,9 +179,9 @@ public class DcmApiCaller implements Closeable {
         // 3 Format of certificate store path and file Name Input Char(8)
         parameterList[2] = new ProgramParameter(new AS400Text(8).toBytes("OBJN0100"));
         // 4 Certificate store password Input Char(*)
-        parameterList[3] = new ProgramParameter(new AS400Text(_dcmStorePw.length(), 1208).toBytes(_dcmStorePw));
+        parameterList[3] = new ProgramParameter(utf8(_dcmStorePw));
         // 5 Length of certificate store password Input Binary(4)
-        parameterList[4] = new ProgramParameter(new AS400Bin4().toBytes(_dcmStorePw.length()));
+        parameterList[4] = new ProgramParameter(new AS400Bin4().toBytes(utf8(_dcmStorePw).length));
         // 6 CCSID of certificate store password Input Binary(4)
         parameterList[5] = new ProgramParameter(new AS400Bin4().toBytes(1208));
         // 7 Export path and file name Input Char(*)
@@ -189,9 +193,9 @@ public class DcmApiCaller implements Closeable {
         // 10 Version of export file Input Char(10)
         parameterList[9] = new ProgramParameter(new AS400Text(10).toBytes("*PKCS12V3 "));
         // 11 Export file password Input Char(*)
-        parameterList[10] = new ProgramParameter(new AS400Text(_exportFilePw.length(), 1208).toBytes(_exportFilePw));
+        parameterList[10] = new ProgramParameter(utf8(_exportFilePw));
         // 12 Length of export file password Input Binary(4)
-        parameterList[11] = new ProgramParameter(new AS400Bin4().toBytes(_exportFilePw.length()));
+        parameterList[11] = new ProgramParameter(new AS400Bin4().toBytes(utf8(_exportFilePw).length));
         // 13 CCSID of export file password Input Binary(4)
         parameterList[12] = new ProgramParameter(new AS400Bin4().toBytes(1208));
         // 14 Error code I/O Char(*)
@@ -218,9 +222,9 @@ public class DcmApiCaller implements Closeable {
         // 3 Format of certificate store path and file Name Input Char(8)
         parameterList[2] = new ProgramParameter(new AS400Text(8).toBytes("OBJN0100"));
         // 4 Certificate store password Input Char(*)
-        parameterList[3] = new ProgramParameter(new AS400Text(_dcmStorePw.length(), 1208).toBytes(_dcmStorePw));
+        parameterList[3] = new ProgramParameter(utf8(_dcmStorePw));
         // 5 Length of certificate store password Input Binary(4)
-        parameterList[4] = new ProgramParameter(new AS400Bin4().toBytes(_dcmStorePw.length()));
+        parameterList[4] = new ProgramParameter(new AS400Bin4().toBytes(utf8(_dcmStorePw).length));
         // 6 CCSID of certificate store password Input Binary(4)
         parameterList[5] = new ProgramParameter(new AS400Bin4().toBytes(1208));
         // 7 Import path and file name Input Char(*)
@@ -232,9 +236,9 @@ public class DcmApiCaller implements Closeable {
         // 10 Version of import file Input Char(10)
         parameterList[9] = new ProgramParameter(new AS400Text(10).toBytes("*PKCS12V3 "));
         // 11 Import file password Input Char(*)
-        parameterList[10] = new ProgramParameter(new AS400Text(_importFilePw.length(), 1208).toBytes(_importFilePw));
+        parameterList[10] = new ProgramParameter(utf8(_importFilePw));
         // 12 Length of import file password Input Binary(4)
-        parameterList[11] = new ProgramParameter(new AS400Bin4().toBytes(_importFilePw.length()));
+        parameterList[11] = new ProgramParameter(new AS400Bin4().toBytes(utf8(_importFilePw).length));
         // 13 CCSID of import file password Input Binary(4)
         parameterList[12] = new ProgramParameter(new AS400Bin4().toBytes(1208));
         // 14 Error code I/O Char(*)
@@ -249,6 +253,22 @@ public class DcmApiCaller implements Closeable {
     @Override
     public void close() throws IOException {
         m_conn.disconnectAllServices();
+    }
+
+    /**
+     * JTOpen's {@link ServiceProgramCall} passes parameters by value unless told otherwise, can only pass four bytes
+     * that way, and insists on pointers for every parameter once there are more than seven. The DCM service-program
+     * APIs take all of their parameters by reference anyway, so mark them all accordingly.
+     */
+    static void passAllByReference(final ProgramParameter[] _parameterList) throws PropertyVetoException {
+        for (final ProgramParameter parameter : _parameterList) {
+            parameter.setParameterType(ProgramParameter.PASS_BY_REFERENCE);
+        }
+    }
+
+    /** Passwords are handed to the DCM APIs as CCSID 1208, so both the data and its length must be in UTF-8 bytes. */
+    static byte[] utf8(final String _str) {
+        return _str.getBytes(StandardCharsets.UTF_8);
     }
 
     private void runProgram(final AppLogger _logger, final ProgramCall _program, final ErrorCodeParameter _ec) throws AS400SecurityException, ErrorCompletingRequestException, IOException, InterruptedException, ObjectDoesNotExistException {
