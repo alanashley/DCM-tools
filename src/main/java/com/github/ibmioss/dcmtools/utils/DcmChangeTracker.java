@@ -35,12 +35,13 @@ public class DcmChangeTracker {
             return ret;
         }
 
+        @Override
         public String getLabel() {
             return m_label;
         }
     }
 
-    public class CertRemovedChange implements DcmChange {
+    public static class CertRemovedChange implements DcmChange {
         private final String m_label;
 
         public CertRemovedChange(final String m_label) {
@@ -52,6 +53,7 @@ public class DcmChangeTracker {
             return String.format("%sRemoval: The certificate with ID '%s' has been removed\n", _linePrefix, m_label);
         }
 
+        @Override
         public String getLabel() {
             return m_label;
         }
@@ -70,12 +72,13 @@ public class DcmChangeTracker {
 
         @Override
         public String getFormattedExplanation(final String _linePrefix) {
-            String ret = String.format("%sThe certificate with ID '%s' has been updated.\n", m_label);
+            String ret = String.format("%sThe certificate with ID '%s' has been updated.\n", _linePrefix, m_label);
             ret += String.format("%s    The old certificate is:\n%s", _linePrefix, CertUtils.getCertInfoStr(m_oldCert, _linePrefix + "        "));
-            ret += String.format("%s    The new certificate is:\n%s", _linePrefix, CertUtils.getCertInfoStr(m_oldCert, _linePrefix + "        "));
+            ret += String.format("%s    The new certificate is:\n%s", _linePrefix, CertUtils.getCertInfoStr(m_newCert, _linePrefix + "        "));
             return ret;
         }
 
+        @Override
         public String getLabel() {
             return m_label;
         }
@@ -83,6 +86,8 @@ public class DcmChangeTracker {
 
     public interface DcmChange {
         public String getFormattedExplanation(String _linePrefix);
+
+        public String getLabel();
     }
 
     public static class NoChangesMadeException extends IOException {
@@ -101,6 +106,7 @@ public class DcmChangeTracker {
     private final DcmUserOpts m_opts;
 
     private final KeyStoreInterrogator m_startingSnapshot;
+    private KeyStoreInterrogator m_latestSnapshot = null;
 
     public DcmChangeTracker(final AppLogger _logger, final DcmUserOpts _opts) throws IOException, PropertyVetoException, AS400SecurityException, ErrorCompletingRequestException, InterruptedException, ObjectDoesNotExistException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
         m_startingSnapshot = KeyStoreInterrogator.getFromDCM(_logger, _opts.isYesMode(), _opts.getDcmStore(), _opts.getDcmPassword());
@@ -112,6 +118,7 @@ public class DcmChangeTracker {
 
         // Get the current snapshot
         final KeyStoreInterrogator current = KeyStoreInterrogator.getFromDCM(_logger, m_opts.isYesMode(), m_opts.getDcmStore(), m_opts.getDcmPassword());
+        m_latestSnapshot = current;
 
         final ArrayList<String> startingAliases = Collections.list(m_startingSnapshot.getKeyStore().aliases());
         final ArrayList<String> currentAliases = Collections.list(current.getKeyStore().aliases());
@@ -141,6 +148,14 @@ public class DcmChangeTracker {
             }
         }
         return ret;
+    }
+
+    /**
+     * @return the state of the store as of the last time changes were checked for, or the starting state if they have
+     *         not been
+     */
+    public KeyStoreInterrogator getLatestSnapshot() {
+        return null == m_latestSnapshot ? m_startingSnapshot : m_latestSnapshot;
     }
 
     public KeyStoreInterrogator getStartingSnapshot() {
