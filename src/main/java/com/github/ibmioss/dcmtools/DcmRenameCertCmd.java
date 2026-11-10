@@ -1,12 +1,13 @@
 package com.github.ibmioss.dcmtools;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.util.Collections;
 
 import com.github.ibmioss.dcmtools.utils.DcmChangeTracker;
+import com.github.ibmioss.dcmtools.utils.DcmStoreEditor;
 import com.github.ibmioss.dcmtools.utils.TempFileManager;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
@@ -88,17 +89,40 @@ public class DcmRenameCertCmd {
         try {
             final DcmChangeTracker tracker = new DcmChangeTracker(logger, opts);
 
-            KeyStore ks = KeyStore.getInstance("IBMi5OSKeyStore");
-            try (FileInputStream fis = new FileInputStream(opts.getDcmStore())) {
-                ks.load(fis, opts.getDcmPassword().toCharArray());
-            }
             final String oldLabel = opts.getOldLabel();
-            final Certificate cert = ks.getCertificate(oldLabel);
             final String newLabel = opts.getNewLabel();
-            ks.deleteEntry(oldLabel);
-            ks.setCertificateEntry(newLabel, cert);
-            try (FileOutputStream fos = new FileOutputStream(opts.getDcmStore())) {
-                ks.store(fos, opts.getDcmPassword().toCharArray());
+            final KeyStore before = tracker.getStartingSnapshot().getKeyStore();
+            if (!before.containsAlias(oldLabel)) {
+                throw new IOException("ERROR: No certificate found with label '" + oldLabel + "'");
+            }
+            if (before.containsAlias(newLabel)) {
+                throw new IOException("ERROR: A certificate with label '" + newLabel + "' already exists");
+            }
+            DcmStoreEditor.edit(logger, opts, tracker, Collections.singleton(oldLabel), Collections.singleton(newLabel), new DcmStoreEditor.Edit() {
+                @Override
+                public void apply(final KeyStore _ks, final char[] _storePassword) throws Exception {
+                    if (_ks.isKeyEntry(oldLabel)) {
+                        // A server/client certificate. Its private key and certificate chain must move with it, or
+                        // it would come back as a certificate that can no longer be assigned to anything.
+                        final Key key = _ks.getKey(oldLabel, _storePassword);
+                        final Certificate[] chain = _ks.getCertificateChain(oldLabel);
+                        if (null == key || null == chain || 0 == chain.length) {
+                            throw new IOException("ERROR: '" + oldLabel + "' has a private key that cannot be read from the certificate store, so it cannot be renamed by this tool. No change was made");
+                        }
+                        _ks.deleteEntry(oldLabel);
+                        _ks.setKeyEntry(newLabel, key, _storePassword, chain);
+                    } else {
+                        final Certificate cert = _ks.getCertificate(oldLabel);
+                        if (null == cert) {
+                            throw new IOException("ERROR: No certificate found with label '" + oldLabel + "'");
+                        }
+                        _ks.deleteEntry(oldLabel);
+                        _ks.setCertificateEntry(newLabel, cert);
+                    }
+                }
+            });
+            if (before.isKeyEntry(oldLabel) && !tracker.getLatestSnapshot().getKeyStore().isKeyEntry(newLabel)) {
+                logger.println_warn("WARNING: '" + newLabel + "' no longer appears to have its private key. Check the certificate in DCM before relying on it");
             }
 
             tracker.printChanges(logger, null);
@@ -124,7 +148,7 @@ public class DcmRenameCertCmd {
                 + "                                       to indicate the *SYSTEM store (default)\n"
                 + "        --dcm-password=<password>:     Provide the DCM keystore password (not recommended)\n"
                 + "        --old-label=<label>:           Label of the certificate to rename\n"
-                + "        --new-label=<label>:           Label of the certificate to rename\n"
+                + "        --new-label=<label>:           New label for the certificate\n"
                 ;
 		// @formatter:on
         System.err.println(usage);

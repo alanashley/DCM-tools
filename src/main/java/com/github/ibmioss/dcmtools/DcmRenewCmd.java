@@ -57,10 +57,11 @@ public class DcmRenewCmd {
 
     private static void printUsageAndExit() {
         // @formatter:off
-		final String usage = "Usage: dcmrenew [[filename] ..]\n"
+		final String usage = "Usage: dcmrenew [options] [[filename] ..]\n"
 		                        + "\n"
 		                        + "    Valid options include:\n"
                                 + "        -y:                            Do not ask for confirmation\n"
+                                + "        -v:                            Verbose output\n"
                                 ;
 		// @formatter:on
         System.err.println(usage);

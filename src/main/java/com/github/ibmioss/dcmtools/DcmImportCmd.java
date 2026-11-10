@@ -181,6 +181,9 @@ public class DcmImportCmd {
                                 + "        --installed-certs:             import all certificates that are installed into PASE\n"
                                 + "                                       environment, for instance, certificates in the\n"
                                 + "                                       ca-certificates-mozilla package\n"
+                                + "\n"
+                                + "    To import a server/client certificate along with its private key, specify a PKCS#12/PFX\n"
+                                + "    file, or specify the PEM private key file alongside the certificate file.\n"
                                 ;
 		// @formatter:on
         System.err.println(usage);

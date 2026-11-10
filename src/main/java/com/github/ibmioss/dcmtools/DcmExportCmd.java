@@ -83,7 +83,7 @@ public class DcmExportCmd {
                 destKs.setCertificateEntry(alias, cert);
             }
             try (FileOutputStream out = new FileOutputStream(file)) {
-                destKs.store(out, opts.getPasswordOrThrow());
+                destKs.store(out, opts.getPasswordOrNull());
             }
             logger.println_success("SUCCESS!!!");
         } catch (final Exception e) {

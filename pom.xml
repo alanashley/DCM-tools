@@ -39,13 +39,19 @@
         </configuration>
       </plugin>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+
       <!-- Allows the program to be run via 'mvn compile exec:java' -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>com.github.ibmioss.dcmtools.DcmImporter</mainClass>
+          <mainClass>com.github.ibmioss.dcmtools.DcmCmd</mainClass>
           <includePluginDependencies>false</includePluginDependencies>
         </configuration>
       </plugin>
@@ -65,7 +71,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>com.github.ibmioss.dcmtools.DcmImporter</mainClass>
+              <mainClass>com.github.ibmioss.dcmtools.DcmCmd</mainClass>
             </manifest>
           </archive>
           <descriptorRefs>
@@ -88,6 +94,13 @@
     	<groupId>io.github.theprez</groupId>
     	<artifactId>jcmdutils</artifactId>
     	<version>0.1.5</version>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

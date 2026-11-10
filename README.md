@@ -18,7 +18,8 @@ It can be used to import files of type:
 - Human-readable DER-encoded certificate bundles
 - JKS trust stores
 - JCEKS trust stores
-- PKCS#12 or PFX bundles
+- PKCS#12 or PFX bundles (the private key and certificate chain are kept, so the certificate is imported as a server/client certificate)
+- PEM private key files (`.key`, `privkey.pem`, ...) given alongside the matching certificate file, as produced by CertBot or acme.sh. The key is paired with its certificate, which is then imported as a server/client certificate
 - A directory containing any of the above
 - A `.zip` file containing any of the above
 
@@ -169,7 +170,7 @@ Usage: dcmview [options]
                                        to indicate the *SYSTEM store (default)
         --dcm-password=<password>:     Provide the DCM keystore password (not recommended)
 
-Usage: dcmemovecert  [options]
+Usage: dcmremovecert  [options]
 
     Valid options include:
         -y:                            Do not ask for confirmation
@@ -216,6 +217,18 @@ dcmimport myfile
 Import all PASE-installed certificates (such as `ca-certificates-mozilla`) into DCM, without asking questions:
 ```
 dcmimport --installed-certs --target=system --dcm-password=abc123 -y
+```
+Import a server certificate, with its private key, from a PKCS#12/PFX file, and call it `mydomain` in DCM:
+```
+dcmimport --password --cert=mydomain mydomain.pfx
+```
+Import a LetsEncrypt server certificate and its private key, straight from the files written by CertBot or acme.sh:
+```
+dcmimport --cert=mydomain /etc/letsencrypt/live/mydomain.dom/fullchain.pem /etc/letsencrypt/live/mydomain.dom/privkey.pem
+```
+Assign that certificate to the Telnet server and the host servers:
+```
+dcmassign --cert=mydomain TELNET HOSTSERVERS
 ```
 Import the Java certificates from JV1's Java 8
 ```

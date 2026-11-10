@@ -1,11 +1,11 @@
 package com.github.ibmioss.dcmtools;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.KeyStore;
+import java.util.Collections;
 
 import com.github.ibmioss.dcmtools.utils.DcmChangeTracker;
+import com.github.ibmioss.dcmtools.utils.DcmStoreEditor;
 import com.github.ibmioss.dcmtools.utils.TempFileManager;
 import com.github.theprez.jcmdutils.AppLogger;
 import com.github.theprez.jcmdutils.ConsoleQuestionAsker;
@@ -67,14 +67,16 @@ public class DcmRemoveCertCmd {
         try {
             final DcmChangeTracker tracker = new DcmChangeTracker(logger, opts);
 
-            KeyStore ks = KeyStore.getInstance("IBMi5OSKeyStore");
-            try (FileInputStream fis = new FileInputStream(opts.getDcmStore())) {
-                ks.load(fis, opts.getDcmPassword().toCharArray());
+            final String label = opts.getLabel();
+            if (!tracker.getStartingSnapshot().getKeyStore().containsAlias(label)) {
+                throw new IOException("ERROR: No certificate found with label '" + label + "'");
             }
-            ks.deleteEntry(opts.getLabel());
-            try (FileOutputStream fos = new FileOutputStream(opts.getDcmStore())) {
-                ks.store(fos, opts.getDcmPassword().toCharArray());
-            }
+            DcmStoreEditor.edit(logger, opts, tracker, Collections.singleton(label), Collections.<String>emptySet(), new DcmStoreEditor.Edit() {
+                @Override
+                public void apply(final KeyStore _ks, final char[] _storePassword) throws Exception {
+                    _ks.deleteEntry(label);
+                }
+            });
             tracker.printChanges(logger, null);
             logger.println_success("SUCCESS!!!");
         } catch (final Exception e) {
@@ -90,7 +92,7 @@ public class DcmRemoveCertCmd {
 
     private static void printUsageAndExit() {
         // @formatter:off
-        final String usage = "Usage: dcmemovecert  [options]\n"
+        final String usage = "Usage: dcmremovecert  [options]\n"
                 + "\n"
                 + "    Valid options include:\n"
                 + "        -y:                            Do not ask for confirmation\n"
