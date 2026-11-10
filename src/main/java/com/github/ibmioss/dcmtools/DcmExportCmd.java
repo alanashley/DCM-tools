@@ -67,7 +67,7 @@ public class DcmExportCmd {
         }
         try {
             if("pkcs12".equalsIgnoreCase(opts.getOutputFileFormat())) {
-                CertUtils.exportDcmStore(logger, opts.isYesMode(), opts.getDcmStore(), opts.getDcmPassword(), file, opts.getPasswordOrNull());
+                CertUtils.exportDcmStore(logger, opts.isYesMode(), opts.getDcmStore(), opts.getDcmPassword(), file, opts.getPasswordOrThrow());
                 return;
             }
             final KeyStore sourceKs = CertUtils.exportDcmStoreToKeystoreObj(logger, opts.isYesMode(), opts.getDcmStore(), opts.getDcmPassword());

@@ -46,7 +46,7 @@ public class KeyStoreInterrogator {
             final Certificate certInKeyStore = m_keyStore.getCertificate(alias);
             if (CertUtils.areCertsEqual(_logger, certInKeyStore, _cert)) {
                 if (certInKeyStore instanceof X509Certificate && _cert instanceof X509Certificate) {
-                    if (Arrays.equals(((X509Certificate) _cert).getSignature(), ((X509Certificate) _cert).getSignature())) {
+                    if (Arrays.equals(((X509Certificate) certInKeyStore).getSignature(), ((X509Certificate) _cert).getSignature())) {
                         return alias;
                     } else {
                         _logger.println_warn("WARNING: found matching certificate with different signature");

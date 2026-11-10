@@ -10,7 +10,7 @@ FORCE:
 all: target/dcmtools.jar
 
 uninstall: clean
-	rm -r ${INSTALL_ROOT}/QOpenSys/pkgs/lib/dcmtools ${INSTALL_ROOT}/QOpenSys/pkgs/bin/dcmimport ${INSTALL_ROOT}/QOpenSys/pkgs/bin/dcmexport
+	rm -r ${INSTALL_ROOT}/QOpenSys/pkgs/lib/dcmtools $(addprefix ${INSTALL_ROOT}/QOpenSys/pkgs/bin/,$(notdir $(wildcard scripts/*)))
 
 clean:
 	rm -r target

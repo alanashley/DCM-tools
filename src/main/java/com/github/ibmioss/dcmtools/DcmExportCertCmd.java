@@ -112,6 +112,9 @@ public class DcmExportCertCmd {
         try {
             KeyStore ks = CertUtils.exportDcmStoreToKeystoreObj(logger, opts.isYesMode(), opts.getDcmStore(), opts.getDcmPassword());
             final Certificate cert = ks.getCertificate(opts.getLabel());
+            if (null == cert) {
+                throw new IOException("ERROR: No certificate found with id '" + opts.getLabel() + "'");
+            }
 
             if (ExportCertOptions.OutputFormat.PEM == opts.getFormat()) {
                 try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"))) {
@@ -132,7 +135,7 @@ public class DcmExportCertCmd {
                 if (!(cert instanceof X509Certificate)) {
                     throw new IOException("ERROR: Only x.509 certificates are supported for this operation");
                 }
-                final byte[] der = ((X509Certificate) cert).getTBSCertificate();
+                final byte[] der = cert.getEncoded();
                 try (FileOutputStream out = new FileOutputStream(file)) {
                     out.write(der);
                 }
