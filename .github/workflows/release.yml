@@ -1,4 +1,5 @@
-# Builds the tools and publishes a GitHub release when a version tag is pushed.
+# Builds the tools and publishes a GitHub release, either when a version tag is pushed or when the workflow is run
+# by hand (in which case the tag is created at the commit the workflow was run on).
 # Tags containing a hyphen (for instance v0.3.1-rc.1) are published as pre-releases.
 
 name: Release
@@ -6,6 +7,11 @@ name: Release
 on:
   push:
     tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create for the release, for instance v0.3.1-rc.1'
+        required: true
 
 permissions:
   contents: write
@@ -32,9 +38,9 @@ jobs:
     - name: Publish release
       env:
         GH_TOKEN: ${{ github.token }}
-        TAG: ${{ github.ref_name }}
+        TAG: ${{ github.event.inputs.tag || github.ref_name }}
       run: |
         flags=""
         case "$TAG" in *-*) flags="--prerelease" ;; esac
-        gh release create "$TAG" $flags --verify-tag --generate-notes --title "$TAG" \
+        gh release create "$TAG" $flags --target "$GITHUB_SHA" --generate-notes --title "$TAG" \
           dist/dcmtools.jar dist/dcmtools-scripts.tar.gz
